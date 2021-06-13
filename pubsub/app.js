@@ -85,13 +85,13 @@ app.post("/pub/:data/:msg",(req,res)=>{
 });
 
 app.post("/subscribe",(req,res)=>{
-    console.log(req.body.username)
     client.subscribe(req.body.username,(error)=>{
         if(error){
             console.log(error);
             return res.status(400).send("invalid user");
         }
         else{
+            console.log(req.body.username,"is online")
             return res.status(200).send("valid user");
         }
     });
@@ -101,7 +101,7 @@ app.post("/publish",(req,res)=>{
     console.log(req.body.username);
     publish.publish(req.body.data.username,req.body.data.message,(error)=>{
         if(error){
-            console.log(error);
+            console.log("error",error);
             return res.status(400).send("invalid user");
         }
         else{
@@ -115,6 +115,10 @@ wss.on("connection",(ws)=>{
         console.log("channel :",channel,"message :",message);
         ws.send("channel :"+channel+"message :"+message);
     });
+    ws.on("close",()=>{
+        console.log("client went offline");
+        client.unsubscribe();
+    })
     // ws.on("message",(msg)=>{
     // });
 
