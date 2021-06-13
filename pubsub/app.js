@@ -8,6 +8,8 @@ require("./database/connect");
 
 const db = require("./database/connect");
 
+const {Op} = require("sequelize");
+
 const WebSocket = require('ws');
 
 const redis_port = 6379;
@@ -36,12 +38,15 @@ app.post("/getmsgs",async (req,res)=>{
     try{
         const user1 = req.body.username;
         console.log(user1);
-        const result = await db.chats.findOne({
+        const result = await db.chats.findAll({
             where:{
-                user1
+                [Op.or]:{
+                    user1:req.body.username,
+                    user2:req.body.username
+                }
             }
         })
-        console.log(result);
+        // console.log(result);
         res.status(200).send(result);
     }
     catch(error){
@@ -70,7 +75,7 @@ const wss = new WebSocket.Server({
     server
 });
 
-app.post("/pub/:data/:msg",(req,res)=>{
+app.post("/pub/:data/:msg",async (req,res)=>{
     console.log(req.params);
     publish.publish(req.params.data,req.params.msg,(error,reply)=>{
         if(error){
@@ -78,6 +83,7 @@ app.post("/pub/:data/:msg",(req,res)=>{
             return res.status(400).send("publishing failed");
         }
         else{
+
             console.log(reply);
             return res.status(200).send("published");
         }
@@ -97,27 +103,55 @@ app.post("/subscribe",(req,res)=>{
     });
 })
 
-app.post("/publish",(req,res)=>{
-    console.log(req.body.username);
-    publish.publish(req.body.data.username,req.body.data.message,(error)=>{
+app.post("/publish",async (req,res)=>{
+    console.log(req.body.user1);
+    const result = await db.chats.create({
+        user1:req.body.data.user1,
+        user2:req.body.data.user2,
+        message:req.body.data.message
+    });
+    const result1 = await db.chats.findAll({
+        where:{
+            [Op.or]:{
+                user1:req.body.data.user1,
+                user2:req.body.data.user1
+            }
+        }
+    })
+    // console.log(result1);
+    publish.publish(req.body.data.user2,req.body.data.message,(error)=>{
         if(error){
             console.log("error",error);
             return res.status(400).send("invalid user");
         }
         else{
-            return res.status(200).send("valid user");
+            return res.status(200).send(result1);
         }
     });
 })
 
 wss.on("connection",(ws)=>{
-    client.on("message",(channel,message)=>{
+    client.on("message",async (channel,message)=>{
         console.log("channel :",channel,"message :",message);
-        ws.send("channel :"+channel+"message :"+message);
+        try{
+            const result = await db.chats.findAll({
+                where:{
+                    [Op.or]:{
+                        user1:channel,
+                        user2:channel
+                    }
+                }
+            })
+            // console.log(result);
+            ws.send(JSON.stringify(result));
+        }
+        catch(error){
+            console.log(error);
+        }
     });
     ws.on("close",()=>{
         console.log("client went offline");
-        client.unsubscribe();
+        // client.unsubscribe();
     })
     // ws.on("message",(msg)=>{
     // });
