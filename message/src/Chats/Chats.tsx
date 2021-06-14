@@ -6,6 +6,15 @@ const Chats = (props: any) => {
   const [username, setusername] = React.useState("");
   const [mymsgs, setmymsgs] = React.useState([]);
   React.useEffect(() => {
+    const es = new EventSource("http://localhost:8000/stream");
+    es.onmessage = (msg:any) => {
+      console.log("in es",msg);
+      setmymsgs(JSON.parse(msg.data));
+    }
+    es.onerror = (error) => {
+      console.log(error);
+      // es.close();
+    }
     const ws = new WebSocket("ws://localhost:8000");
     ws.onopen = () => {
       console.log("opened");

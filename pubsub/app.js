@@ -130,7 +130,12 @@ app.post("/publish",async (req,res)=>{
     });
 })
 
-wss.on("connection",(ws)=>{
+app.get("/stream",(req,res)=>{
+    res.setHeader("Content-Type","text/event-stream");
+    getpublishermsgs(res);
+});
+
+function getpublishermsgs(res){
     client.on("message",async (channel,message)=>{
         console.log("channel :",channel,"message :",message);
         try{
@@ -143,12 +148,33 @@ wss.on("connection",(ws)=>{
                 }
             })
             // console.log(result);
-            ws.send(JSON.stringify(result));
+            res.status(200).send("data: "+JSON.stringify(result)+"\n\n");
         }
         catch(error){
             console.log(error);
         }
     });
+}
+
+wss.on("connection",(ws)=>{
+    // client.on("message",async (channel,message)=>{
+    //     console.log("channel :",channel,"message :",message);
+    //     try{
+    //         const result = await db.chats.findAll({
+    //             where:{
+    //                 [Op.or]:{
+    //                     user1:channel,
+    //                     user2:channel
+    //                 }
+    //             }
+    //         })
+    //         // console.log(result);
+    //         ws.send(JSON.stringify(result));
+    //     }
+    //     catch(error){
+    //         console.log(error);
+    //     }
+    // });
     ws.on("close",()=>{
         console.log("client went offline");
         // client.unsubscribe();
