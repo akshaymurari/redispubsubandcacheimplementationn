@@ -148,7 +148,7 @@ function getpublishermsgs(res){
                 }
             })
             // console.log(result);
-            res.status(200).send("data: "+JSON.stringify(result)+"\n\n");
+            res.write("data: "+JSON.stringify(result)+"\n\n");
         }
         catch(error){
             console.log(error);
